@@ -7,7 +7,7 @@ const PORT = process.env.PORT;
 const { chats } = require("./dummy/data");
 const connectDB = require("./config/db");
 const userRouter = require("./routers/userRouter.js");
-const errorHandler = require("./error/errorMiddleware.js");
+const { errorHandler, notFound } = require("./error/errorMiddleware.js");
 
 const corsOption = {
   origin: ["http://127.0.0.1:5173", "http://127.0.0.1:5000"],
@@ -36,6 +36,8 @@ app.get("/api/chat/:id", (req, res) => {
 });
 
 app.use("/api/user", userRouter);
+
+app.use(notFound);
 
 app.use(errorHandler);
 

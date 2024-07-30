@@ -3,6 +3,7 @@ const ErrorHelper = require("../error/errorHelper.js");
 const User = require("../models/user.model.js");
 const userTransformer = require("../transformers/userTransformer.js");
 const { generateToken } = require("../config/token.js");
+const bcrypt = require("bcryptjs");
 
 const isUsernameTaken = async (username) => {
   const result = await User.findOne({ username });
@@ -32,11 +33,13 @@ const registerUser = asyncHandler(async (req, res, next) => {
     );
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
+
   const user = await User.create({
     name,
     username,
     email,
-    password,
+    password: hashedPassword,
     profileImage,
   });
 
@@ -49,6 +52,22 @@ const registerUser = asyncHandler(async (req, res, next) => {
   }
 });
 
+const loginUser = asyncHandler(async (req, res, next) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username });
+
+  if (!user) {
+    throw new ErrorHelper("Username is not found", 400);
+  }
+
+  if (await user.matchPassword(password, user.password)) {
+    res.status(200).json({ message: "login success" });
+  } else {
+    throw new ErrorHelper("Password does not mactch", 401);
+  }
+});
+
 module.exports = {
   registerUser,
+  loginUser,
 };
