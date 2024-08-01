@@ -4,6 +4,8 @@ const User = require("../models/user.model.js");
 const userTransformer = require("../transformers/userTransformer.js");
 const { generateToken } = require("../config/token.js");
 const bcrypt = require("bcryptjs");
+const { formidable } = require("formidable");
+const { uploadToCloudinary, cloudinary } = require("../utils/cloudinary.js");
 
 const isUsernameTaken = async (username) => {
   const result = await User.findOne({ username });
@@ -16,9 +18,9 @@ const isEmailTaken = async (email) => {
 };
 
 const registerUser = asyncHandler(async (req, res, next) => {
-  const { name, username, email, password, profileImage } = req.body;
+  const { username, email, password, profileImage } = req.body;
 
-  if (!name || !username || !email || !password) {
+  if (!username || !email || !password) {
     throw new ErrorHelper("All fields have to be filled", 400);
   }
 
@@ -36,11 +38,11 @@ const registerUser = asyncHandler(async (req, res, next) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await User.create({
-    name,
     username,
     email,
     password: hashedPassword,
     profileImage,
+    ACCOUNT_STATUS: "PENDING",
   });
 
   if (user) {
@@ -48,8 +50,55 @@ const registerUser = asyncHandler(async (req, res, next) => {
     result.token = generateToken(user._id);
     res.status(200).json(result);
   } else {
-    throw new Error("Failed when created user");
+    throw new ErrorHelper("Failed when created user");
   }
+});
+
+const registerUser2 = asyncHandler(async (req, res) => {
+  const form = formidable();
+  console.log("Masuk ke register user");
+  console.log(req);
+
+  const response = await new Promise((resolve, reject) => {
+    form.parse(req, (err, fields, files) => {
+      if (err) {
+        reject(err);
+      }
+      resolve({ fields, files });
+    });
+  });
+  console.log(response);
+  const { fields, files } = response;
+  const newName = fields.name[0];
+  console.log("fileds: ", fields);
+  console.log("files: ", files.media_file_0);
+
+  // res.status(200).json({ message: "test" });
+  try {
+    const cloudinaryResult = await uploadToCloudinary(
+      files.media_file_0[0].filepath
+    );
+    console.log(cloudinaryResult);
+    // res
+    //   .status(200)
+    //   .json({ cloudinaryResult, url: cloudinaryResult.secure_url });
+  } catch (error) {
+    console.log("Error bro");
+    console.log(error);
+    res.status(500).send(error);
+  }
+
+  const result = await User.findOneAndUpdate(
+    { username },
+    {
+      $set: { name: newName, ACCOUNT_STATUS: "VERIFIED" },
+    }
+  );
+
+  if (!result) {
+    throw new ErrorHelper("Operation failed");
+  }
+  res.status(200).json({ message: "Register Verification Success", result });
 });
 
 const loginUser = asyncHandler(async (req, res, next) => {
@@ -70,4 +119,5 @@ const loginUser = asyncHandler(async (req, res, next) => {
 module.exports = {
   registerUser,
   loginUser,
+  registerUser2,
 };

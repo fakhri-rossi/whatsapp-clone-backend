@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Name harus diisi"],
+      default: " ",
+      // required: [true, "Name harus diisi"],
     },
     username: {
       type: String,
@@ -25,6 +26,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       default:
         "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+    },
+    bio: {
+      type: String,
+      defaut: "Hi There!, I'm using Whats Chat!",
+    },
+    ACCOUNT_STATUS: {
+      type: String,
+      enum: ["PENDING", "VERIFIED", "SUSPENDED"],
+      required: [true, "System Err: account status can't be empty"],
     },
   },
   { timestamps: true }
